@@ -36,9 +36,9 @@ export
 # Nombre del proyecto (por defecto, el directorio actual).
 PROJECT ?= $(notdir $(CURDIR))
 
-# Rama y remoto por defecto para git.
-GIT_REMOTE ?= origin
-GIT_BRANCH ?= main
+# Remoto y rama: acepta GITHUB_REMOTE/GITHUB_BRANCH como alias (compatibilidad).
+GIT_REMOTE ?= $(if $(GITHUB_REMOTE),$(GITHUB_REMOTE),origin)
+GIT_BRANCH ?= $(if $(GITHUB_BRANCH),$(GITHUB_BRANCH),main)
 
 # Mensaje por defecto de commit.
 COMMIT_MSG ?= Automated commit by makeit

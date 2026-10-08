@@ -9,11 +9,13 @@
 #   FTP_REMOTE_PATH  ruta remota destino (default: /)
 #   FTP_LOCAL_DIR    directorio local a subir (default: public)
 #   FTP_DELETE       si vale 1, borra en remoto lo que no exista en local
+#   FTP_VERBOSE      si vale 1, muestra cada fichero transferido
 # =============================================================================
 
 FTP_REMOTE_PATH ?= /
 FTP_LOCAL_DIR   ?= public
 FTP_DELETE      ?= 0
+FTP_VERBOSE     ?= 0
 
 # =============================================================================
 ##@ FTP
@@ -33,7 +35,9 @@ ftp-upload: _ftp-check ## Sube FTP_LOCAL_DIR por FTP a FTP_REMOTE_PATH
 	@printf "$(C_CYAN)▶ Subiendo $(FTP_LOCAL_DIR)/ → $(FTP_SERVER)$(FTP_REMOTE_PATH)$(C_RESET)\n"
 	@lftp -u "$(FTP_USERNAME),$(FTP_PASSWORD)" "$(FTP_SERVER)" -e \
 		"set ftp:passive-mode true; \
-		 mirror --reverse --verbose $(if $(filter 1,$(FTP_DELETE)),--delete,) \
+		 set ftp:ssl-allow no; \
+		 mirror --reverse $(if $(filter 1,$(FTP_VERBOSE)),--verbose,) \
+		 $(if $(filter 1,$(FTP_DELETE)),--delete,) \
 		 $(FTP_LOCAL_DIR)/ $(FTP_REMOTE_PATH); bye"
 	@printf "$(C_GREEN)✓ Subida completada.$(C_RESET)\n"
 
