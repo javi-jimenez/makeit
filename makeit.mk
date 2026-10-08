@@ -80,6 +80,11 @@ define fail
 @printf "$(C_RED)✗ $(1)$(C_RESET)\n"; exit 1
 endef
 
+# --- Versión del proyecto ---------------------------------------------------
+# Se guarda en ./VERSION (dentro del proyecto). Si no existe, se asume "0.0.0".
+VERSION_FILE ?= VERSION
+PROJECT_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo 0.0.0)
+
 # =============================================================================
 ##@ Ayuda
 # =============================================================================
@@ -94,5 +99,25 @@ help: ## Muestra esta ayuda
 		$(MAKEFILE_LIST)
 
 .PHONY: version
-version: ## Muestra la versión de makeit
-	@printf "makeit: $(C_CYAN)%s$(C_RESET)\n" "$(shell cat $(MAKEIT)/VERSION 2>/dev/null || echo 'dev')"
+version: ## Muestra la versión; con VERSION=x.y.z la establece
+	@if [ -n "$(VERSION)" ]; then \
+		printf "%s\n" "$(VERSION)" > $(VERSION_FILE); \
+		printf "$(C_GREEN)✓ Versión del proyecto: $(VERSION)$(C_RESET)\n"; \
+	else \
+		printf "$(C_BOLD)$(PROJECT)$(C_RESET): $(C_CYAN)$(PROJECT_VERSION)$(C_RESET)\n"; \
+		printf "makeit: $(C_CYAN)%s$(C_RESET)\n" "$(shell cat $(MAKEIT)/VERSION 2>/dev/null || echo 'dev')"; \
+	fi
+
+.PHONY: version-bump
+version-bump: ## Sube la versión automáticamente (BUMP=major|minor|patch)
+	@cur="$(PROJECT_VERSION)"; \
+	major=$$(echo $$cur | cut -d. -f1); minor=$$(echo $$cur | cut -d. -f2); patch=$$(echo $$cur | cut -d. -f3); \
+	case "$(BUMP)" in \
+		major) major=$$((major+1)); minor=0; patch=0 ;; \
+		minor) minor=$$((minor+1)); patch=0 ;; \
+		patch|"") patch=$$((patch+1)) ;; \
+		*) printf "$(C_RED)✗ BUMP debe ser major, minor o patch.$(C_RESET)\n"; exit 1 ;; \
+	esac; \
+	new="$$major.$$minor.$$patch"; \
+	printf "%s\n" "$$new" > $(VERSION_FILE); \
+	printf "$(C_GREEN)✓ Versión: $$cur → $$new$(C_RESET)\n"

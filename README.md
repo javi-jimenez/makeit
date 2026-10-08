@@ -62,7 +62,7 @@ make serve         # servidor de desarrollo de Hugo
 
 | Módulo | Comandos principales |
 |---|---|
-| `makeit.mk` (core) | `help`, `version` |
+| `makeit.mk` (core) | `help`, `version`, `version-bump` |
 | `modules/git.mk` | `push`, `pull`, `git-status`, `git-commit`, `tag`, `release` |
 | `modules/ftp.mk` | `ftp-upload`, `ftp-dry-run` |
 | `modules/hugo.mk` | `build`, `serve`, `clean`, `deploy`, `hugo-install` |
@@ -89,6 +89,26 @@ También puedes sobreescribir variables directamente en el Makefile del proyecto
 | `FTP_REMOTE_PATH` | `/` | Ruta remota destino |
 | `FTP_LOCAL_DIR` | `public` | Directorio local a subir |
 | `HUGO_VERSION` | `0.152.2` | Versión de Hugo |
+
+## Versionado
+
+La versión del proyecto se guarda en `./VERSION` y se gestiona con `make version`:
+
+```bash
+make version            # muestra la versión actual del proyecto
+make version VERSION=1.0.1   # establece la versión a 1.0.1
+make version-bump BUMP=patch # sube la versión (major|minor|patch)
+```
+
+Los tags incluyen **timestamp** `YYYYMMDDHHMM` para que cada etiqueta sea única:
+
+```bash
+make tag                # -> 1.0.1-202610082159  (usa la versión de ./VERSION)
+make release            # crea el tag y lo sube al remoto (tag + push-tags)
+```
+
+El control de major/minor/patch es tuyo (con `make version` o `make version-bump`);
+el timestamp lo añade makeit automáticamente.
 
 ## Cómo añadir un módulo
 
