@@ -1,0 +1,98 @@
+# =============================================================================
+# makeit — núcleo (core)
+# -----------------------------------------------------------------------------
+# Framework de Makefiles modulares y reutilizables para cualquier proyecto.
+#
+# Uso en el Makefile de un proyecto:
+#
+#   MAKEIT ?= $(HOME)/data/repo/makeit
+#   include $(MAKEIT)/makeit.mk
+#   include $(MAKEIT)/modules/git.mk
+#   include $(MAKEIT)/modules/ftp.mk
+#   include $(MAKEIT)/modules/hugo.mk
+#
+# Cada módulo define targets auto-documentados (##) y agrupados (##@).
+# `make help` muestra todo lo disponible.
+# =============================================================================
+
+# --- Shell y comportamiento ------------------------------------------------
+SHELL := /bin/bash
+.DEFAULT_GOAL := help
+
+# Evita que make confunda ficheros con targets y permite encadenar módulos.
+MAKEFLAGS += --no-print-directory
+
+# --- Localización de makeit ------------------------------------------------
+# MAKEIT se define en el Makefile del proyecto; si no, se asume esta ruta.
+MAKEIT ?= $(HOME)/data/repo/makeit
+MAKEIT_MODULES ?= $(MAKEIT)/modules
+
+# --- Carga de configuración local ------------------------------------------
+# El proyecto puede tener un .env (no versionado) con variables locales.
+-include .env
+export
+
+# --- Variables comunes (sobreescribibles por el proyecto) -------------------
+# Nombre del proyecto (por defecto, el directorio actual).
+PROJECT ?= $(notdir $(CURDIR))
+
+# Rama y remoto por defecto para git.
+GIT_REMOTE ?= origin
+GIT_BRANCH ?= main
+
+# Mensaje por defecto de commit.
+COMMIT_MSG ?= Automated commit by makeit
+
+# --- Colores (se desactivan si NO_COLOR está definido) ---------------------
+ifdef NO_COLOR
+  C_RESET :=
+  C_BOLD  :=
+  C_CYAN  :=
+  C_GREEN :=
+  C_YELL  :=
+  C_RED   :=
+else
+  C_RESET := \033[0m
+  C_BOLD  := \033[1m
+  C_CYAN  := \033[36m
+  C_GREEN := \033[32m
+  C_YELL  := \033[33m
+  C_RED   := \033[31m
+endif
+
+# --- Helpers internos -------------------------------------------------------
+# Comprueba que un comando existe. Uso: $(call require_cmd,git)
+define require_cmd
+@command -v $(1) >/dev/null 2>&1 || { \
+	printf "$(C_RED)✗ Falta el comando '$(1)'.$(C_RESET)\n"; exit 1; }
+endef
+
+# Imprime un mensaje de sección.
+define section
+@printf "\n$(C_BOLD)$(C_CYAN)▶ $(1)$(C_RESET)\n"
+endef
+
+# Imprime OK / error.
+define ok
+@printf "$(C_GREEN)✓ $(1)$(C_RESET)\n"
+endef
+define fail
+@printf "$(C_RED)✗ $(1)$(C_RESET)\n"; exit 1
+endef
+
+# =============================================================================
+##@ Ayuda
+# =============================================================================
+
+.PHONY: help
+help: ## Muestra esta ayuda
+	@printf "\n$(C_BOLD)makeit$(C_RESET) — $(C_CYAN)$(PROJECT)$(C_RESET)\n"
+	@printf "Uso: make $(C_CYAN)<target>$(C_RESET)\n"
+	@awk 'BEGIN {FS = ":.*##"} \
+		/^##@/ { printf "\n$(C_BOLD)%s$(C_RESET)\n", substr($$0, 5) } \
+		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  $(C_CYAN)%-18s$(C_RESET) %s\n", $$1, $$2 }' \
+		$(MAKEFILE_LIST)
+
+.PHONY: version
+version: ## Muestra la versión de makeit
+	@printf "makeit: $(C_CYAN)%s$(C_RESET)\n" "$(shell cat $(MAKEIT)/VERSION 2>/dev/null || echo 'dev')"
