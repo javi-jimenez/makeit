@@ -82,7 +82,9 @@ endef
 
 # --- Versión del proyecto ---------------------------------------------------
 # Se guarda en ./VERSION (dentro del proyecto). Si no existe, se asume "0.0.0".
-VERSION_FILE ?= VERSION
+# Algunos proyectos usan ./.version (con punto, p. ej. para que no lo liste `ls`);
+# se acepta cualquiera de los dos y se prefiere VERSION si existen ambos.
+VERSION_FILE ?= $(if $(wildcard VERSION),VERSION,$(if $(wildcard .version),.version,VERSION))
 PROJECT_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo 0.0.0)
 
 # =============================================================================
