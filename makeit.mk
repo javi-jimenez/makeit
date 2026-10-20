@@ -129,6 +129,7 @@ version-bump: ## Sube la versión automáticamente (BUMP=major|minor|patch)
 # en el README de makeit.
 README_FILE     ?= README.md
 CHANGELOG_FILE  ?= CHANGELOG.md
+CHANGELOG_AUTO  ?= 1          # 0 = `make tag` no crea la entrada vacía
 
 .PHONY: readme-check
 readme-check: ## Comprueba que README y CHANGELOG existen y citan la versión

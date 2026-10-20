@@ -45,6 +45,8 @@ pull: ## Hace pull de GIT_REMOTE/GIT_BRANCH
 # Etiqueta con timestamp: <version>-YYYYMMDDHHMM (ej: 1.0.1-202610082159).
 # La versión sale de ./VERSION (ver `make version`). Si no hay VERSION, solo
 # se usa el timestamp.
+# Antes de crear el tag, si existe CHANGELOG.md y no tiene entrada para la
+# versión, se inserta una vacía (CHANGELOG_AUTO=0 para desactivarlo).
 .PHONY: tag
 tag: ## Crea un tag <version>-<timestamp> (versión de ./VERSION)
 	$(call require_cmd,git)
@@ -54,6 +56,12 @@ tag: ## Crea un tag <version>-<timestamp> (versión de ./VERSION)
 	if git rev-parse "$$tag" >/dev/null 2>&1; then \
 		printf "$(C_YELL)• El tag $$tag ya existe.$(C_RESET)\n"; \
 	else \
+		if [ "$(CHANGELOG_AUTO)" != "0" ] && [ -f "$(CHANGELOG_FILE)" ]; then \
+			if ! grep -qF "## [$$ver]" "$(CHANGELOG_FILE)"; then \
+				$(MAKE) --no-print-directory changelog-new >/dev/null 2>&1 || true; \
+				printf "$(C_YELL)• Entrada $$ver creada en $(CHANGELOG_FILE) — rellénala.$(C_RESET)\n"; \
+			fi; \
+		fi; \
 		git tag -a "$$tag" -m "Release $$tag"; \
 		printf "$(C_GREEN)✓ Tag $$tag creado.$(C_RESET)\n"; \
 	fi

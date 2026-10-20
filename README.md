@@ -1,6 +1,6 @@
 # makeit
 
-**Versión: 0.2.0** · [CHANGELOG](CHANGELOG.md)
+**Versión: 0.2.1** · [CHANGELOG](CHANGELOG.md)
 
 Framework de **Makefiles modulares y reutilizables** para cualquier proyecto.
 
@@ -108,7 +108,12 @@ Los tags incluyen **timestamp** `YYYYMMDDHHMM` para que cada etiqueta sea única
 make tag                # -> 1.0.1-202610082159  (usa la versión de ./VERSION)
 make release            # crea el tag y lo sube al remoto (tag + push-tags)
 make readme-check       # avisa si falta README o CHANGELOG, o si discrepan
+make changelog-new      # inserta la entrada de la versión actual a mano
 ```
+
+**`make tag` crea la entrada del CHANGELOG automáticamente** si existe `CHANGELOG.md` y
+no tiene todavía una sección para esa versión. La deja vacía, con los cuatro apartados,
+para que solo haya que rellenarla. Se desactiva con `CHANGELOG_AUTO=0`.
 
 El control de major/minor/patch es tuyo (con `make version` o `make version-bump`);
 el timestamp lo añade makeit automáticamente.
@@ -128,7 +133,8 @@ Un tag de git es invisible desde dentro del proyecto. Cualquiera que abra la car
 
 1. **La versión aparece en el README en las primeras líneas**, no al final. Es lo primero
    que se busca.
-2. **El CHANGELOG va en orden inverso** (lo más nuevo arriba) y una entrada por tag.
+2. **El CHANGELOG va en orden inverso** (lo más nuevo arriba) y **una entrada por tag**.
+   `make tag` la crea sola si falta.
 3. **Cada entrada dice el porqué, no solo el qué.** «Se renombró WP7» no sirve; «se
    renombró porque una afirmación jurídica se puede comprobar y una ética no» sí. El
    razonamiento es lo primero que se pierde y lo más caro de reconstruir.

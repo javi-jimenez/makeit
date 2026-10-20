@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.1] — 2026-10-21
+
+### Añadido
+
+- **`make tag` crea la entrada del CHANGELOG automáticamente.** Si existe `CHANGELOG.md`
+  y no tiene sección para la versión que se está etiquetando, inserta una vacía con los
+  cuatro apartados. Desactivable con `CHANGELOG_AUTO=0`.
+
+### Corregido
+
+- **`$(C_YELLOW)` no existe** — la variable es `$(C_YELL)`. El mensaje del tag salía vacío.
+- Se declara `CHANGELOG_AUTO` como variable documentada, no implícita.
+
+### Decidido
+
+- **La entrada se crea vacía, no se rellena sola.** El mensaje del commit no es un
+  changelog: dice qué se tocó, no por qué. Generar el «porqué» automáticamente sería
+  inventarlo.
+
 ## [0.2.0] — 2026-10-21
 
 ### Añadido
