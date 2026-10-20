@@ -121,3 +121,54 @@ version-bump: ## Sube la versión automáticamente (BUMP=major|minor|patch)
 	new="$$major.$$minor.$$patch"; \
 	printf "%s\n" "$$new" > $(VERSION_FILE); \
 	printf "$(C_GREEN)✓ Versión: $$cur → $$new$(C_RESET)\n"
+# --- Política de versión visible --------------------------------------------
+# Un tag es invisible desde dentro del proyecto. El README lleva la versión
+# actual y el CHANGELOG describe cada una. Ver "Política de versión visible"
+# en el README de makeit.
+README_FILE     ?= README.md
+CHANGELOG_FILE  ?= CHANGELOG.md
+
+.PHONY: readme-check
+readme-check: ## Comprueba que README y CHANGELOG existen y citan la versión
+	@fail=0; \
+	for f in $(README_FILE) $(CHANGELOG_FILE); do \
+	        if [ ! -f "$$f" ]; then \
+	                printf "$(C_RED)✗ Falta %s$(C_RESET)\n" "$$f"; fail=1; \
+	        fi; \
+	done; \
+	ver="$$(cat $(VERSION_FILE) 2>/dev/null || echo 0.0.0)"; \
+	if [ "$$ver" != "0.0.0" ]; then \
+	        if [ -f "$(README_FILE)" ] && ! grep -qF "$$ver" "$(README_FILE)"; then \
+	                printf "$(C_RED)✗ %s no menciona la versión %s$(C_RESET)\n" "$(README_FILE)" "$$ver"; fail=1; \
+	        fi; \
+	        if [ -f "$(CHANGELOG_FILE)" ] && ! grep -qF "$$ver" "$(CHANGELOG_FILE)"; then \
+	                printf "$(C_RED)✗ %s no tiene entrada para %s$(C_RESET)\n" "$(CHANGELOG_FILE)" "$$ver"; fail=1; \
+	        fi; \
+	fi; \
+	if [ "$$fail" -eq 0 ]; then \
+	        printf "$(C_GREEN)✓ Versión visible: %s en README y CHANGELOG$(C_RESET)\n" "$$ver"; \
+	else \
+	        exit 1; \
+	fi
+
+.PHONY: changelog-new
+changelog-new: ## Prepara la entrada de la versión actual en CHANGELOG.md
+	@ver="$$(cat $(VERSION_FILE) 2>/dev/null || echo 0.0.0)"; \
+	if [ "$$ver" = "0.0.0" ]; then \
+	        printf "$(C_RED)✗ No hay versión. Ejecuta 'make version VERSION=x.y.z' o 'make version-bump'.$(C_RESET)\n"; exit 1; \
+	fi; \
+	if [ ! -f "$(CHANGELOG_FILE)" ]; then \
+	        printf "# Changelog\n\n## [%s] — %s\n\n### Añadido\n\n### Cambiado\n\n### Corregido\n\n### Decidido\n" \
+	                "$$ver" "$$(date +%Y-%m-%d)" > "$(CHANGELOG_FILE)"; \
+	else \
+	        tmp="$$(mktemp)"; \
+	        printf "# Changelog\n\n## [%s] — %s\n\n### Añadido\n\n### Cambiado\n\n### Corregido\n\n### Decidido\n\n" \
+	                "$$ver" "$$(date +%Y-%m-%d)" > "$$tmp"; \
+	        if head -1 "$(CHANGELOG_FILE)" | grep -q '^# Changelog'; then \
+	                tail -n +2 "$(CHANGELOG_FILE)" >> "$$tmp"; \
+	        else \
+	                cat "$(CHANGELOG_FILE)" >> "$$tmp"; \
+	        fi; \
+	        mv "$$tmp" "$(CHANGELOG_FILE)"; \
+	fi; \
+	printf "$(C_GREEN)✓ Entrada %s preparada en %s$(C_RESET)\n" "$$ver" "$(CHANGELOG_FILE)"

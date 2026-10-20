@@ -1,5 +1,7 @@
 # makeit
 
+**Versión: 0.2.0** · [CHANGELOG](CHANGELOG.md)
+
 Framework de **Makefiles modulares y reutilizables** para cualquier proyecto.
 
 En lugar de copiar y pegar un Makefile enorme en cada repo, incluyes solo los
@@ -62,7 +64,7 @@ make serve         # servidor de desarrollo de Hugo
 
 | Módulo | Comandos principales |
 |---|---|
-| `makeit.mk` (core) | `help`, `version`, `version-bump` |
+| `makeit.mk` (core) | `help`, `version`, `version-bump`, `readme-check` |
 | `modules/git.mk` | `push`, `pull`, `git-status`, `git-commit`, `tag`, `release` |
 | `modules/ftp.mk` | `ftp-upload`, `ftp-dry-run` |
 | `modules/hugo.mk` | `build`, `serve`, `clean`, `deploy`, `hugo-install` |
@@ -105,10 +107,63 @@ Los tags incluyen **timestamp** `YYYYMMDDHHMM` para que cada etiqueta sea única
 ```bash
 make tag                # -> 1.0.1-202610082159  (usa la versión de ./VERSION)
 make release            # crea el tag y lo sube al remoto (tag + push-tags)
+make readme-check       # avisa si falta README o CHANGELOG, o si discrepan
 ```
 
 El control de major/minor/patch es tuyo (con `make version` o `make version-bump`);
 el timestamp lo añade makeit automáticamente.
+
+### Política de versión visible: `README.md` + `CHANGELOG.md`
+
+Un tag de git es invisible desde dentro del proyecto. Cualquiera que abra la carpeta
+—tú dentro de tres meses, o un colaborador— no ve la versión en ningún sitio. Por eso
+**todo proyecto versionado con makeit lleva dos ficheros en la raíz**:
+
+| Fichero | Contenido | Cambia |
+|---|---|---|
+| `README.md` | **La versión actual, arriba del todo.** Qué es el proyecto, cómo se construye, qué está bloqueado, las cifras clave | Cuando cambia la versión |
+| `CHANGELOG.md` | Una entrada por versión: qué cambió y **por qué** | Cada versión |
+
+**Reglas:**
+
+1. **La versión aparece en el README en las primeras líneas**, no al final. Es lo primero
+   que se busca.
+2. **El CHANGELOG va en orden inverso** (lo más nuevo arriba) y una entrada por tag.
+3. **Cada entrada dice el porqué, no solo el qué.** «Se renombró WP7» no sirve; «se
+   renombró porque una afirmación jurídica se puede comprobar y una ética no» sí. El
+   razonamiento es lo primero que se pierde y lo más caro de reconstruir.
+4. **Se documenta también lo que se decidió no hacer**, y por qué. Las decisiones negativas
+   son las que se deshacen por accidente.
+5. **El CHANGELOG refleja lo que hay en el tag, no lo que hay en el árbol.** Si algo está a
+   medias, va en una sección *Open* al final, no como si estuviera hecho.
+6. **Si `VERSION`/`.version` está excluido por `.gitignore`** (habitual en repos que solo
+   versionan markdown), la versión vive en el tag y en el README. Es correcto: el tag es
+   inmutable y el fichero no.
+
+**Estructura mínima de una entrada:**
+
+```markdown
+## [202610210041] — 2026-10-21 00:41
+
+Tag `decisions-202610210041` · commit `479b44e` · **estado: no entregable, 36 páginas**
+
+### Añadido
+### Cambiado
+### Corregido
+### Decidido
+```
+
+Los cuatro apartados, y **`Decidido` es el importante**: no es un cambio en un fichero, es
+una decisión que alguien tendrá que respetar después.
+
+### Cuándo subir la versión
+
+| Situación | ¿Nueva versión? |
+|---|---|
+| Cambia el contenido entregable | **Sí** |
+| Cambia una decisión registrada | **Sí** |
+| Solo notas de trabajo interno | No |
+| Solo un commit de formato | No |
 
 ## Cómo añadir un módulo
 
