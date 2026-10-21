@@ -1,6 +1,6 @@
 # makeit
 
-**Versión: 0.3.1** · [CHANGELOG](CHANGELOG.md)
+**Versión: 0.3.2** · [CHANGELOG](CHANGELOG.md)
 
 Framework de **Makefiles modulares y reutilizables** para cualquier proyecto.
 
@@ -25,6 +25,12 @@ Clona makeit en cualquier ruta y apunta a ella desde tus proyectos:
 ```bash
 git clone <url> ~/data/repo/makeit
 ```
+
+> Este repositorio está replicado en GitHub
+> (`git@github.com:javi-jimenez/makeit.git`) y en Gitea
+> (`ssh://git@gitea.app.brisecom.net:22/gitea/makeit.git`). Su propio Makefile
+> ya declara `GIT_REMOTES="origin gitea"` y `GIT_SLOW_REMOTES=gitea`, así que
+> `make push-all` y `make push-tags` funcionan sin configurar nada.
 
 ## Uso
 

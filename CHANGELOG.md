@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.2] — 2026-10-21
+
+### Añadido
+
+- **Publicación del repositorio**: GitHub (`javi-jimenez/makeit`) y Gitea
+  (`gitea/makeit`), ambos públicos, con los tags `0.2.1`, `0.3.0` y `0.3.1`.
+- **El Makefile de makeit configura su propia réplica** — `GIT_REMOTES="origin
+  gitea"` y `GIT_SLOW_REMOTES=gitea` — para que sirva de ejemplo real de la
+  configuración que el README describe.
+
+### Decidido
+
+- **El transporte a Gitea es SSH, no HTTPS.** El almacén de credenciales HTTP de
+  esta máquina se quedó sin la contraseña (GCM no puede escribir en el llavero:
+  `Failed to open secret service session`) y depender de un token guardado a mano
+  era frágil. La clave `hek-push` ya está registrada en Gitea y el agente la
+  tiene cargada: cero prompts, cero secretos en disco.
+- **Los repos nuevos se crean por API, no por push.** Gitea tiene
+  `ENABLE_PUSH_CREATE_USER=false`, así que un `push` a un repo inexistente falla
+  con "Push to create is not enabled". Crear el repo requiere `write:user`.
+
 ## [0.3.1] — 2026-10-21
 
 ### Añadido

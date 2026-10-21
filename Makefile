@@ -11,12 +11,15 @@
 MAKEIT ?= $(HOME)/data/repo/makeit
 
 # --- Configuración específica del proyecto (antes de los include) ----------
-# PROJECT        ?= mi-sitio
-# GIT_REMOTE     ?= origin
-# GIT_BRANCH     ?= main
-# FTP_SERVER     ?= ftp://ftp.example.org
-# FTP_REMOTE_PATH?= /public_html/
-# HUGO_VERSION   ?= 0.152.2
+PROJECT        ?= makeit
+GIT_REMOTE     ?= origin
+GIT_BRANCH     ?= main
+
+# Réplica: GitHub (origin) + Gitea (gitea). Este repo se usa desde la propia
+# máquina, así que aquí sí se puede incluir makeit desde su ruta (un proyecto
+# cualquiera no debería: ataría su build a este HOME).
+GIT_REMOTES      ?= origin gitea
+GIT_SLOW_REMOTES ?= gitea
 
 # Núcleo (obligatorio).
 include $(MAKEIT)/makeit.mk
