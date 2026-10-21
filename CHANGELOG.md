@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.3] — 2026-10-21
+
+### Cambiado
+
+- **La URL de Gitea en el README usa la forma canónica**
+  (`git@gitea.app.brisecom.net:gitea/makeit.git`) en lugar de
+  `ssh://…:22/…`. El SSH del servidor entra por el **puerto 22 a través del
+  router TCP de Traefik**, que reenvía al OpenSSH del host; ese OpenSSH delega
+  en Gitea, así que no hace falta puerto raro ni prefijo de URL especial.
+
+### Decidido
+
+- **Se retira la configuración de credenciales HTTP para Gitea.** Con el
+  transporte en SSH, el token de API ya solo se usa para la API REST y no tiene
+  por qué estar también disponible como credencial de git: menos copias de un
+  secreto, menos sitios donde pueda quedar obsoleto.
+
 ## [0.3.2] — 2026-10-21
 
 ### Añadido
