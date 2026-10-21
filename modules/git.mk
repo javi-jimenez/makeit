@@ -15,6 +15,37 @@
 # Ejemplo de uso real (repo replicado GitHub + Gitea): GIT_REMOTES="origin gitea"
 GIT_REMOTES ?=
 
+# Remotos "lentos": su almacén no soporta packs grandes. El caso real es un
+# Gitea cuyo directorio de repositorios vive en s3fs: al descomprimir el pack
+# escribe un tmp-pack en un FS sin locking y el push falla con
+#   "remote unpack failed: index-pack abnormal exit"
+# Empatar con el nombre del remoto o con cualquier trozo de su URL.
+#
+# Hay dos grupos porque `git -c` es una opción GLOBAL (antes del subcomando) y
+# `--no-thin` es una opción DE PUSH (después). Con todo en una variable se
+# acaba llamando a `git push -c ...`, que git rechaza con el texto de ayuda.
+GIT_SLOW_REMOTES   ?=
+GIT_SLOW_GIT_OPTS  ?= -c pack.threads=1
+GIT_SLOW_PUSH_OPTS ?= --no-thin
+
+# Devuelve "<opciones globales>|<opciones de push>" para el remoto $1.
+# Compara contra el nombre y contra la URL, así que vale GIT_SLOW_REMOTES=gitea
+# tanto si el remoto se llama "gitea" como si apunta a gitea.dominio.tld.
+# Sin remotos lentos devuelve "|" (ambas partes vacías).
+#
+# OJO: la receta evita `case ... )` a propósito. Un paréntesis de cierre dentro
+# de un `$(call ...)` cierra la función de make y rompe la expansión.
+define remote_push_flags
+$(if $(strip $(GIT_SLOW_REMOTES)), \
+	__u=$$(git remote get-url "$(1)" 2>/dev/null); \
+	__m=""; \
+	for __s in $(GIT_SLOW_REMOTES); do \
+		printf '%s %s' "$(1)" "$$__u" | grep -q -- "$$__s" && { __m=1; break; }; \
+	done; \
+	if [ -n "$$__m" ]; then echo "$(GIT_SLOW_GIT_OPTS)|$(GIT_SLOW_PUSH_OPTS)"; else echo "|"; fi,|
+)
+endef
+
 # =============================================================================
 ##@ Git
 # =============================================================================
@@ -39,7 +70,8 @@ git-commit: ## Hace commit de todos los cambios (COMMIT_MSG="...")
 push: ## Hace commit de todo y push a GIT_REMOTE/GIT_BRANCH
 	$(call require_cmd,git)
 	@$(MAKE) git-commit
-	@git push "$(GIT_REMOTE)" "$(GIT_BRANCH)"
+	@f=$$($(call remote_push_flags,$(GIT_REMOTE))); \
+	git $${f%%|*} push $${f#*|} "$(GIT_REMOTE)" "$(GIT_BRANCH)"
 	@printf "$(C_GREEN)✓ Subido a $(GIT_REMOTE)/$(GIT_BRANCH).$(C_RESET)\n"
 
 .PHONY: pull
@@ -59,7 +91,8 @@ push-all: ## Hace commit y push a todos los remotos de GIT_REMOTES
 	fail=0; \
 	for r in $$remotes; do \
 		printf "  $(C_CYAN)%-10s$(C_RESET) → " "$$r"; \
-		out=$$(git push "$$r" "$(GIT_BRANCH)" 2>&1); rc=$$?; \
+		f=$$($(call remote_push_flags,$$r)); \
+		out=$$(git $${f%%|*} push $${f#*|} "$$r" "$(GIT_BRANCH)" 2>&1); rc=$$?; \
 		if [ $$rc -eq 0 ]; then \
 			printf "$(C_GREEN)✓$(C_RESET)\n"; \
 		else \
@@ -109,7 +142,8 @@ push-tags: ## Sube los tags a todos los remotos de GIT_REMOTES
 	fail=0; \
 	for r in $$remotes; do \
 		printf "  $(C_CYAN)%-10s$(C_RESET) → " "$$r"; \
-		out=$$(git push "$$r" --tags 2>&1); rc=$$?; \
+		f=$$($(call remote_push_flags,$$r)); \
+		out=$$(git $${f%%|*} push $${f#*|} "$$r" --tags 2>&1); rc=$$?; \
 		if [ $$rc -eq 0 ]; then \
 			printf "$(C_GREEN)✓$(C_RESET)\n"; \
 		else \

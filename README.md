@@ -1,6 +1,6 @@
 # makeit
 
-**Versión: 0.3.0** · [CHANGELOG](CHANGELOG.md)
+**Versión: 0.3.1** · [CHANGELOG](CHANGELOG.md)
 
 Framework de **Makefiles modulares y reutilizables** para cualquier proyecto.
 

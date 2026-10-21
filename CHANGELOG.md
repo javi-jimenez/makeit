@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.1] — 2026-10-21
+
+### Añadido
+
+- **`GIT_SLOW_REMOTES`, `GIT_SLOW_GIT_OPTS`, `GIT_SLOW_PUSH_OPTS`** — remotos
+  cuyo almacén no soporta packs grandes empujan con `-c pack.threads=1
+  --no-thin` sólo ellos. El matcher compara **nombre y URL**, así que
+  `GIT_SLOW_REMOTES=gitea` vale igual si el remoto se llama `gitea` o si apunta
+  a `gitea.dominio.tld`.
+
+### Corregido
+
+- **Los flags de push no pueden ir en una sola variable.** `-c` es una opción
+  global de git y `--no-thin` es una opción del subcomando: juntas producen
+  `git push -c ...` y git imprime la ayuda. Se devuelven como dos grupos
+  separados por `|` y se expanden **sin comillas** para que se dividan en
+  palabras.
+
+### Decidido
+
+- **El workaround vive en el framework, no en cada proyecto.** El fallo es del
+  servidor (fs sin locking), no del repo, así que el conocimiento pertenece
+  donde se comparte: declarar `GIT_SLOW_REMOTES` y olvidarse.
+- **La detección es declarativa, no por sondeo.** No se comprueba si el servidor
+  es rápido: se marca. Un test de velocidad en cada push costaría más que el
+  propio push y sería frágil.
+
 ## [0.3.0] — 2026-10-21
 
 ### Añadido
