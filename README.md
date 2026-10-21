@@ -1,6 +1,6 @@
 # makeit
 
-**Versión: 0.2.1** · [CHANGELOG](CHANGELOG.md)
+**Versión: 0.3.0** · [CHANGELOG](CHANGELOG.md)
 
 Framework de **Makefiles modulares y reutilizables** para cualquier proyecto.
 
@@ -64,10 +64,10 @@ make serve         # servidor de desarrollo de Hugo
 
 | Módulo | Comandos principales |
 |---|---|
-| `makeit.mk` (core) | `help`, `version`, `version-bump`, `readme-check` |
-| `modules/git.mk` | `push`, `pull`, `git-status`, `git-commit`, `tag`, `release` |
+| `makeit.mk` (core) | `help`, `version`, `version-bump`, `readme-check`, `changelog-new` |
+| `modules/git.mk` | `push`, `push-all`, `pull`, `git-status`, `git-commit`, `tag`, `push-tags`, `release`, `install-hooks` |
 | `modules/ftp.mk` | `ftp-upload`, `ftp-dry-run` |
-| `modules/hugo.mk` | `build`, `serve`, `clean`, `deploy`, `hugo-install` |
+| `modules/hugo.mk` | `build`, `serve`, `clean`, `deploy`, `hugo-install`, `hugo-check` |
 | `modules/test.mk` | `test`, `lint` |
 | `modules/docker.mk` | `docker-build`, `docker-push`, `docker-run` |
 | `modules/clean.mk` | `clean-all` |
@@ -83,6 +83,7 @@ También puedes sobreescribir variables directamente en el Makefile del proyecto
 |---|---|---|
 | `PROJECT` | nombre del directorio | Nombre del proyecto |
 | `GIT_REMOTE` | `origin` | Remoto git |
+| `GIT_REMOTES` | _(vacío → `GIT_REMOTE`)_ | Remotos de `push-all` / `push-tags` (ej: `"origin gitea"`) |
 | `GIT_BRANCH` | `main` | Rama git |
 | `COMMIT_MSG` | `Automated commit by makeit` | Mensaje de commit |
 | `FTP_SERVER` | — | Host/URL FTP |
@@ -91,6 +92,23 @@ También puedes sobreescribir variables directamente en el Makefile del proyecto
 | `FTP_REMOTE_PATH` | `/` | Ruta remota destino |
 | `FTP_LOCAL_DIR` | `public` | Directorio local a subir |
 | `HUGO_VERSION` | `0.152.2` | Versión de Hugo |
+| `HUGO_DOCKER_IMAGE` | `ghcr.io/gohugoio/hugo:latest` | Imagen usada si no hay Hugo en el host |
+
+### Réplica en dos forjas (GitHub + Gitea)
+
+Si el repo vive en más de un sitio, no dupliques el empuje en scripts:
+
+```bash
+make push-all      # un commit, un push por remoto; el fallo de uno no oculta los demás
+make release       # tag + subida de tags a todos los remotos
+```
+```makefile
+GIT_REMOTES ?= origin gitea
+```
+
+`push-all` y `push-tags` **siguen con el resto de remotos si uno falla** e imprimen
+la salida del que haya fallado: en una réplica, saber *cuál* falló importa más que
+saber que algo falló.
 
 ## Versionado
 
@@ -106,14 +124,15 @@ Los tags incluyen **timestamp** `YYYYMMDDHHMM` para que cada etiqueta sea única
 
 ```bash
 make tag                # -> 1.0.1-202610082159  (usa la versión de ./VERSION)
-make release            # crea el tag y lo sube al remoto (tag + push-tags)
+make release            # crea el tag y lo sube a GIT_REMOTES (tag + push-tags)
 make readme-check       # avisa si falta README o CHANGELOG, o si discrepan
 make changelog-new      # inserta la entrada de la versión actual a mano
 ```
 
-**`make tag` crea la entrada del CHANGELOG automáticamente** si existe `CHANGELOG.md` y
-no tiene todavía una sección para esa versión. La deja vacía, con los cuatro apartados,
-para que solo haya que rellenarla. Se desactiva con `CHANGELOG_AUTO=0`.
+**`make tag` deja la entrada del CHANGELOG dentro del tag.** Si falta la sección de
+la versión, la crea vacía, **la commitea** y luego etiqueta. Sin ese commit la
+entrada quedaría fuera del tag, y entonces el CHANGELOG describiría un árbol que no
+es el etiquetado. Se desactiva con `CHANGELOG_AUTO=0`.
 
 El control de major/minor/patch es tuyo (con `make version` o `make version-bump`);
 el timestamp lo añade makeit automáticamente.

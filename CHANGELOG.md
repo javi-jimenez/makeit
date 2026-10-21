@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.3.0] — 2026-10-21
+
+### Añadido
+
+- **`push-all` y `GIT_REMOTES`** — empuje a varios remotos en un solo comando
+  (réplica GitHub + Gitea). Un commit, un push por remoto, y **el fallo de uno no
+  impide los demás ni oculta la salida del que falló**.
+- **`push-tags` acepta varios remotos** (antes sólo `GIT_REMOTE`).
+- **`release`** — existía en la tabla del README pero **no estaba implementado**.
+  Ahora hace `tag` + `push-tags`, que es lo que prometía la documentación.
+- **`install-hooks`** — instala los hooks del proyecto: ejecuta
+  `tools/install-git-hooks.sh` si existe y, si no, apunta `core.hooksPath` a `.githooks/`.
+- **Fallback a Docker en `modules/hugo.mk`** (`HUGO_DOCKER_IMAGE`, patrón D2) para
+  `build`, `serve` y `hugo-check`: si no hay binario de Hugo ni en `./.bin` ni en el
+  PATH, se usa la imagen oficial. Antes el módulo exigía Hugo instalado en el host.
+
+### Corregido
+
+- **`tag` dejaba la entrada del CHANGELOG fuera del tag.** Se creaba el fichero,
+  pero el tag se hacía sobre el commit anterior, así que el árbol etiquetado no
+  contenía la entrada que el propio `tag` acababa de generar. Ahora la commitea
+  antes de etiquetar.
+- **`tag` no creaba `CHANGELOG.md` si el fichero no existía** (el `-f` de la guarda
+  lo impedía), justo el caso de un proyecto nuevo.
+
+### Decidido
+
+- **El fallo de un remoto no aborta la réplica, pero sí el código de salida.** En
+  una réplica interesa intentar todos los destinos (uno puede estar caído) y aun
+  así fallar visiblemente, para no dar por buena una subida a medias.
+- **El patrón D2 (usar la herramienta del entorno; si falta, contenedor oficial)
+  sube del proyecto al framework.** Venía probado en `jimenezgomez.org`, donde el
+  mismo Makefile corre en local, Drone y GitHub Actions; es genérico y evita la
+  instalación de Hugo en el host, que es justo lo que makeit promete no necesitar.
+
 ## [0.2.1] — 2026-10-21
 
 ### Añadido

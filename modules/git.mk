@@ -1,13 +1,19 @@
 # =============================================================================
 # makeit — módulo git
 # -----------------------------------------------------------------------------
-# Tareas habituales de git: estado, commit, push, pull, tags.
+# Tareas habituales de git: estado, commit, push, pull, tags, releases.
 # Variables (sobreescribibles en el Makefile del proyecto o .env):
-#   GIT_REMOTE   remoto por defecto (default: origin)
-#   GIT_BRANCH   rama por defecto (default: main)
-#   COMMIT_MSG   mensaje de commit por defecto
+#   GIT_REMOTE    remoto por defecto (default: origin)
+#   GIT_REMOTES   espacies-separados; remotos para `push-all` y `push-tags`
+#                 (ej: GIT_REMOTES="origin gitea"). Si está vacío se usa GIT_REMOTE.
+#   GIT_BRANCH    rama por defecto (default: main)
+#   COMMIT_MSG    mensaje de commit por defecto
 # La versión del proyecto (para los tags) sale de ./VERSION (ver `make version`).
 # =============================================================================
+
+# Remotos a los que empujan los targets "multi" (`push-all`, `push-tags`).
+# Ejemplo de uso real (repo replicado GitHub + Gitea): GIT_REMOTES="origin gitea"
+GIT_REMOTES ?=
 
 # =============================================================================
 ##@ Git
@@ -42,11 +48,37 @@ pull: ## Hace pull de GIT_REMOTE/GIT_BRANCH
 	@git pull "$(GIT_REMOTE)" "$(GIT_BRANCH)"
 	@printf "$(C_GREEN)✓ Actualizado desde $(GIT_REMOTE)/$(GIT_BRANCH).$(C_RESET)\n"
 
+# Push a VARIOS remotos (espejo). Útil cuando el repo vive en dos forjas
+# (p. ej. GitHub + Gitea): un solo commit, N empujes, y el fallo de uno no
+# impide intentar los demás ni oculta el error.
+.PHONY: push-all
+push-all: ## Hace commit y push a todos los remotos de GIT_REMOTES
+	$(call require_cmd,git)
+	@$(MAKE) --no-print-directory git-commit
+	@remotes="$(if $(GIT_REMOTES),$(GIT_REMOTES),$(GIT_REMOTE))"; \
+	fail=0; \
+	for r in $$remotes; do \
+		printf "  $(C_CYAN)%-10s$(C_RESET) → " "$$r"; \
+		out=$$(git push "$$r" "$(GIT_BRANCH)" 2>&1); rc=$$?; \
+		if [ $$rc -eq 0 ]; then \
+			printf "$(C_GREEN)✓$(C_RESET)\n"; \
+		else \
+			printf "$(C_RED)✗$(C_RESET)\n"; printf "%s\n" "$$out" | sed 's/^/    /'; fail=1; \
+		fi; \
+	done; \
+	if [ $$fail -eq 0 ]; then \
+		printf "$(C_GREEN)✓ Subido a todos los remotos.$(C_RESET)\n"; \
+	else \
+		printf "$(C_RED)✗ Algún remoto falló (ver arriba).$(C_RESET)\n"; exit 1; \
+	fi
+
 # Etiqueta con timestamp: <version>-YYYYMMDDHHMM (ej: 1.0.1-202610082159).
 # La versión sale de ./VERSION (ver `make version`). Si no hay VERSION, solo
 # se usa el timestamp.
-# Antes de crear el tag, si existe CHANGELOG.md y no tiene entrada para la
-# versión, se inserta una vacía (CHANGELOG_AUTO=0 para desactivarlo).
+#
+# Antes de crear el tag, si CHANGELOG_AUTO != 0, garantiza que existe la entrada
+# de la versión en CHANGELOG.md y **la commitea**. Sin ese commit la entrada
+# quedaría fuera del tag, y el CHANGELOG debe describir lo que hay EN el tag.
 .PHONY: tag
 tag: ## Crea un tag <version>-<timestamp> (versión de ./VERSION)
 	$(call require_cmd,git)
@@ -56,10 +88,14 @@ tag: ## Crea un tag <version>-<timestamp> (versión de ./VERSION)
 	if git rev-parse "$$tag" >/dev/null 2>&1; then \
 		printf "$(C_YELL)• El tag $$tag ya existe.$(C_RESET)\n"; \
 	else \
-		if [ "$(CHANGELOG_AUTO)" != "0" ] && [ -f "$(CHANGELOG_FILE)" ]; then \
-			if ! grep -qF "## [$$ver]" "$(CHANGELOG_FILE)"; then \
+		if [ "$(CHANGELOG_AUTO)" != "0" ] && [ -n "$$ver" ] && [ "$$ver" != "0.0.0" ]; then \
+			if ! grep -qF "## [$$ver]" "$(CHANGELOG_FILE)" 2>/dev/null; then \
 				$(MAKE) --no-print-directory changelog-new >/dev/null 2>&1 || true; \
-				printf "$(C_YELL)• Entrada $$ver creada en $(CHANGELOG_FILE) — rellénala.$(C_RESET)\n"; \
+			fi; \
+			if [ -n "$$(git status --porcelain -- "$(CHANGELOG_FILE)" 2>/dev/null)" ]; then \
+				git add "$(CHANGELOG_FILE)"; \
+				git commit -q -m "changelog: entrada $$ver (antes del tag)" -- "$(CHANGELOG_FILE)"; \
+				printf "$(C_YELL)• Entrada $$ver commiteada en $(CHANGELOG_FILE) — rellénala.$(C_RESET)\n"; \
 			fi; \
 		fi; \
 		git tag -a "$$tag" -m "Release $$tag"; \
@@ -67,7 +103,38 @@ tag: ## Crea un tag <version>-<timestamp> (versión de ./VERSION)
 	fi
 
 .PHONY: push-tags
-push-tags: ## Sube los tags a GIT_REMOTE
+push-tags: ## Sube los tags a todos los remotos de GIT_REMOTES
 	$(call require_cmd,git)
-	@git push "$(GIT_REMOTE)" --tags
-	@printf "$(C_GREEN)✓ Tags subidos.$(C_RESET)\n"
+	@remotes="$(if $(GIT_REMOTES),$(GIT_REMOTES),$(GIT_REMOTE))"; \
+	fail=0; \
+	for r in $$remotes; do \
+		printf "  $(C_CYAN)%-10s$(C_RESET) → " "$$r"; \
+		out=$$(git push "$$r" --tags 2>&1); rc=$$?; \
+		if [ $$rc -eq 0 ]; then \
+			printf "$(C_GREEN)✓$(C_RESET)\n"; \
+		else \
+			printf "$(C_RED)✗$(C_RESET)\n"; printf "%s\n" "$$out" | sed 's/^/    /'; fail=1; \
+		fi; \
+	done; \
+	[ $$fail -eq 0 ] || printf "$(C_RED)✗ Algún remoto rechazó los tags.$(C_RESET)\n"
+
+# Tag + subida en un paso. Es el `release` que documentaba el README y faltaba.
+.PHONY: release
+release: ## Crea el tag y lo sube a GIT_REMOTES
+	@$(MAKE) --no-print-directory tag
+	@$(MAKE) --no-print-directory push-tags
+
+# Hooks de git. Prefiere el instalador del proyecto (que puede hacer más cosas
+# que copiar ficheros) y, si no existe, usa core.hooksPath sobre .githooks/.
+.PHONY: install-hooks
+install-hooks: ## Instala los git hooks (.githooks/ o tools/install-git-hooks.sh)
+	$(call require_cmd,git)
+	@if [ -x tools/install-git-hooks.sh ]; then \
+		printf "$(C_CYAN)▶ tools/install-git-hooks.sh$(C_RESET)\n"; \
+		tools/install-git-hooks.sh; \
+	elif [ -d .githooks ]; then \
+		git config core.hooksPath .githooks; \
+		printf "$(C_GREEN)✓ core.hooksPath = .githooks$(C_RESET)\n"; \
+	else \
+		printf "$(C_YELL)• No hay tools/install-git-hooks.sh ni .githooks/.$(C_RESET)\n"; \
+	fi
